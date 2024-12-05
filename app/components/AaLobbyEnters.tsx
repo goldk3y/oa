@@ -2,7 +2,7 @@
 
 import { gql, useQuery } from '@apollo/client';
 import { XfLobbyEntersQuery } from '../types/hex';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 
 const GET_XF_LOBBY_ENTERS_BASE = gql`
   query GetXfLobbyEnters($first: Int!, $orderBy: String!, $orderDirection: String!, $minAmount: String!, $skip: Int!) {
@@ -74,11 +74,13 @@ export default function XfLobbyEnters() {
     };
   }, []);
 
-  const addresses = memberAddresses 
-    ? memberAddresses.split(',')
-        .map(addr => addr.trim().toLowerCase())
-        .filter(addr => addr.length === 42 && addr.startsWith('0x'))
-    : [];
+  const addresses = useMemo(() => {
+    if (!memberAddresses) return [];
+    return memberAddresses
+      .split(',')
+      .map(addr => addr.trim().toLowerCase())
+      .filter(addr => addr.length === 42 && addr.startsWith('0x'));
+  }, [memberAddresses]);
 
   const queryVariables = {
     first: limit,
@@ -95,16 +97,12 @@ export default function XfLobbyEnters() {
     }
   }, [memberAddresses, addresses]);
 
-  const { loading, error, data, refetch } = useQuery<XfLobbyEntersQuery>(
+  const { loading, error, data } = useQuery<XfLobbyEntersQuery>(
     addresses.length > 0 ? GET_XF_LOBBY_ENTERS_WITH_ADDRESSES : GET_XF_LOBBY_ENTERS_BASE,
     {
       variables: queryVariables
     }
   );
-
-  const handleRefresh = () => {
-    refetch();
-  };
 
   const handleNextPage = () => {
     setSkip(prev => prev + limit);
