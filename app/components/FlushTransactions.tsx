@@ -38,10 +38,14 @@ const abbreviateNumber = (value: number): string => {
   return value.toLocaleString();
 };
 
+const abbreviateAddress = (address: string): string => {
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+};
+
 export default function FlushTransactions() {
   const [summary, setSummary] = useState<TransactionSummary>({});
   const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const [sortBy, setSortBy] = useState<'amount' | 'count'>('amount');
+  const [sortBy, setSortBy] = useState<'amount' | 'count' | 'date'>('amount');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [dailyTotals, setDailyTotals] = useState<DailyTotal[]>([]);
   const [transactionType, setTransactionType] = useState<'send' | 'receive' | 'internal'>('send');
@@ -161,7 +165,7 @@ export default function FlushTransactions() {
     dailyAmounts[dateKey] = (dailyAmounts[dateKey] || 0) + amount;
   }
 
-  const toggleSort = (field: 'amount' | 'count') => {
+  const toggleSort = (field: 'amount' | 'count' | 'date') => {
     if (sortBy === field) {
       setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
     } else {
@@ -172,6 +176,10 @@ export default function FlushTransactions() {
 
   const sortedTransactions = Object.values(summary).sort((a, b) => {
     const multiplier = sortDirection === 'asc' ? 1 : -1;
+    
+    if (sortBy === 'date') {
+      return (a.lastDate.getTime() - b.lastDate.getTime()) * multiplier;
+    }
     return (a[sortBy] - b[sortBy]) * multiplier;
   });
 
@@ -295,7 +303,12 @@ export default function FlushTransactions() {
                           Count {sortBy === 'count' && (sortDirection === 'desc' ? '↓' : '↑')}
                         </th>
                       )}
-                      <th className="px-4 py-2 text-left">Date</th>
+                      <th 
+                        className="px-4 py-2 text-left cursor-pointer hover:text-blue-500" 
+                        onClick={() => toggleSort('date')}
+                      >
+                        Date {sortBy === 'date' && (sortDirection === 'desc' ? '↓' : '↑')}
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -332,8 +345,9 @@ export default function FlushTransactions() {
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-blue-500 hover:text-blue-600 transition-colors"
+                                title={transaction.to}
                               >
-                                {transaction.to}
+                                {abbreviateAddress(transaction.to)}
                               </a>
                             )}
                           </td>
